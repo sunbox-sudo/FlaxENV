@@ -2,9 +2,9 @@
 
 sudo dnf install -y git
 
-REPO_SSH="git@github.com:sunbox-sudo/FedoraENV.git"
-REPO_HTTPS="https://github.com/sunbox-sudo/FedoraENV.git"
-DEST="$HOME/.FedoraENV"
+REPO_SSH="git@github.com:sunbox-sudo/FlaxENV.git"
+REPO_HTTPS="https://github.com/sunbox-sudo/FlaxENV.git"
+DEST="$HOME/.FlaxENV"
 
 # Clones git repo (SSH first, HTTPS as fallback)
 if [ -d "$DEST/.git" ]; then
@@ -26,6 +26,6 @@ else
 	fi
 fi
 
-# Create symlink for fedora-env
+# Create symlink for flax-env
 mkdir -p "$HOME/.local/bin"
-ln -sf "$DEST/fedora-env" "$HOME/.local/bin/fedora-env"
+ln -sf "$DEST/flax-env" "$HOME/.local/bin/flax-env"

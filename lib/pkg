@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # =============================================================================
-# lib/pkg - package handling (dnf) for FedoraENV
+# lib/pkg - package handling (pacman) for FlaxOS (Arch)
 # =============================================================================
 # PURPOSE
 #   Install and update packages in a way that is safe to run again and again
 #   (idempotent): packages that are already installed are skipped.
 #
 # USAGE (this file is SOURCED, never executed)
-#   source "$FENV_HOME/lib/pkg.sh"          # loads log.sh by itself
-#   pkg_update                              # dnf upgrade (skip it with your own flag)
+#   source "$Flax_ENV_HOME/lib/pkg.sh"          # loads log.sh by itself
+#   pkg_update                              # pacman upgrade (skip it with your own flag)
 #   pkg_install git tmux zsh neovim         # installs only what is missing
 #   if pkg_installed chezmoi; then ... fi
 #
@@ -25,57 +25,57 @@
 #   - Public functions are named pkg_*.
 # =============================================================================
 
-[[ -n "${_FENV_PKG_LOADED:-}" ]] && return 0
-_FENV_PKG_LOADED=1
+[[ -n "${_FlaxENV_PKG_LOADED:-}" ]] && return 0
+_FlaxENV_PKG_LOADED=1
 
-_FENV_LIB_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+_FlaxENV_LIB_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/log
-source "${_FENV_LIB_DIR}/log"
+source "${_FlaxENV_LIB_DIR}/log"
 
 # -----------------------------------------------------------------------------
 # pkg_installed NAME
 #   0 if the package is installed, 1 otherwise.
 # -----------------------------------------------------------------------------
 pkg_installed() {
-  rpm -q "$1" >/dev/null 2>&1
+	pacman -Q "$1" >/dev/null 2>&1
 }
 
 # -----------------------------------------------------------------------------
 # pkg_install NAME...
 #   Install every package that is not installed yet. Does nothing (and says so
-#   in the log) when all are present. Exits when dnf fails.
+#   in the log) when all are present. Exits when pacman fails.
 # -----------------------------------------------------------------------------
 pkg_install() {
-  if (( $# == 0 )); then
-    log_die "pkg_install called without packages (bug in the calling script)."
-  fi
+	if (( $# == 0 )); then
+		log_die "pkg_install called without packages (bug in the calling script)."
+	fi
 
-  local pkg
-  local -a missing=()
-  for pkg in "$@"; do
-    pkg_installed "$pkg" || missing+=("$pkg")
-  done
+	local pkg
+	local -a missing=()
+	for pkg in "$@"; do
+		pkg_installed "$pkg" || missing+=("$pkg")
+	done
 
-  if (( ${#missing[@]} == 0 )); then
-    log_debug "already installed: $*"
-    return 0
-  fi
+	if (( ${#missing[@]} == 0 )); then
+		log_debug "already installed: $*"
+		return 0
+	fi
 
-  log_info "Installing: ${missing[*]}"
-  if ! log_run sudo dnf install -y "${missing[@]}"; then
-    log_die "Installing packages failed: ${missing[*]}"
-  fi
-  return 0
+	log_info "Installing: ${missing[*]}"
+	if ! log_run sudo pacman -S --noconfirm "${missing[@]}"; then
+		log_die "Installing packages failed: ${missing[*]}"
+	fi
+	return 0
 }
 
 # -----------------------------------------------------------------------------
 # pkg_update
-#   Refresh the metadata and upgrade all packages. Exits when dnf fails.
+#   Refresh the metadata and upgrade all packages. Exits when pacman fails.
 # -----------------------------------------------------------------------------
 pkg_update() {
-  log_info "Updating the system (dnf upgrade)..."
-  if ! log_run sudo dnf upgrade -y --refresh; then
-    log_die "System update failed."
-  fi
-  return 0
+	log_info "Updating the system (pacman upgrade)..."
+	if ! log_run sudo pacman -Syu; then
+		log_die "System update failed."
+	fi
+	return 0
 }

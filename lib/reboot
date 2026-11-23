@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # =============================================================================
-# lib/reboot.sh - "a reboot is needed" tracking for FedoraENV
+# lib/reboot.sh - "a reboot is needed" tracking for FlaxENV
 # =============================================================================
 # PURPOSE
 #   Collect reasons why a reboot is needed during the run and show one notice
 #   at the end.
 #
 # USAGE (this file is SOURCED, never executed)
-#   source "$FENV_HOME/lib/reboot.sh"       # loads log.sh by itself
+#   source "$FlaxENV_HOME/lib/reboot.sh"       # loads log.sh by itself
 #   reboot_request "kernel was updated"     # any stage can add a reason
-#   reboot_check_system                     # ask the system (call after dnf upgrade)
+#   reboot_check_system                     # ask the system (call after system package manager (pacman/dnf/apt) upgrade)
 #   if reboot_needed; then ... fi
 #   reboot_notice                           # last line of the script
 #
@@ -29,14 +29,14 @@
 #   - Public functions are named reboot_*, internal ones _reboot_*.
 # =============================================================================
 
-[[ -n "${_FENV_REBOOT_LOADED:-}" ]] && return 0
-_FENV_REBOOT_LOADED=1
+[[ -n "${_FlaxENV_REBOOT_LOADED:-}" ]] && return 0
+_FlaxENV_REBOOT_LOADED=1
 
-_FENV_LIB_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+_FlaxENV_LIB_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/log
-source "${_FENV_LIB_DIR}/log"
+source "${_FlaxENV_LIB_DIR}/log"
 
-declare -ga FENV_REBOOT_REASONS=()
+declare -ga FlaxENV_REBOOT_REASONS=()
 
 # -----------------------------------------------------------------------------
 # reboot_request REASON...
@@ -44,7 +44,7 @@ declare -ga FENV_REBOOT_REASONS=()
 # -----------------------------------------------------------------------------
 reboot_request() {
   local reason="$*"
-  FENV_REBOOT_REASONS+=("$reason")
+  FlaxENV_REBOOT_REASONS+=("$reason")
   log_debug "reboot requested: ${reason}"
 }
 
@@ -53,41 +53,26 @@ reboot_request() {
 #   0 (true) if any reason was collected, 1 otherwise.
 # -----------------------------------------------------------------------------
 reboot_needed() {
-  (( ${#FENV_REBOOT_REASONS[@]} > 0 ))
+  (( ${#FlaxENV_REBOOT_REASONS[@]} > 0 ))
 }
 
 # -----------------------------------------------------------------------------
 # reboot_check_system
 #   Ask the system if a reboot is needed (e.g. after a kernel update) and add
 #   a reason if so. Call it after pkg_update.
+#
+#   Kernel check: each installed kernel keeps its modules in
+#   /usr/lib/modules/<release>. Updating a kernel package removes the old
+#   directory, so if the running kernel's directory is gone, a newer kernel
+#   is installed and we are still running the old one.
 # -----------------------------------------------------------------------------
 reboot_check_system() {
-  local rc=0
-  dnf needs-restarting -r >/dev/null 2>&1 && rc=0 || rc=$?
-
-  case "$rc" in
-    0)
-      log_debug "dnf needs-restarting: no reboot needed"
-      return 0
-      ;;
-    1)
-      reboot_request "core system packages were updated (dnf needs-restarting)"
-      return 0
-      ;;
-    *)
-      log_debug "dnf needs-restarting unavailable (exit ${rc}), comparing kernels"
-      ;;
-  esac
-
-  # Fallback: running kernel vs newest installed kernel.
-  local running newest
+  local running
   running="$(uname -r)"
-  newest="$(rpm -q kernel-core --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' 2>/dev/null \
-    | grep -E '^[0-9]' | sort -V | tail -n 1 || true)"
-  if [[ -n "$newest" && "$running" != "$newest" ]]; then
-    reboot_request "a newer kernel is installed (${newest}, running ${running})"
+
+  if [[ ! -d "/usr/lib/modules/${running}" ]]; then
+    reboot_add_reason "Kernel was updated (running ${running}, its modules are gone)"
   fi
-  return 0
 }
 
 # -----------------------------------------------------------------------------
@@ -100,7 +85,7 @@ reboot_notice() {
   fi
   local reason
   log_warn "A reboot is needed to finish the setup:"
-  for reason in "${FENV_REBOOT_REASONS[@]}"; do
+  for reason in "${FlaxENV_REBOOT_REASONS[@]}"; do
     log_warn "  - ${reason}"
   done
   log_warn "Reboot when ready: sudo systemctl reboot"
