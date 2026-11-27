@@ -1,4 +1,4 @@
-!/usr/bin/env bash
+#!/usr/bin/env bash
 # =============================================================================
 # flax-env - installs and updates a arch machine (FlaxENV main engine)
 # =============================================================================
