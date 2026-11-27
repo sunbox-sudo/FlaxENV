@@ -71,7 +71,7 @@ reboot_check_system() {
   running="$(uname -r)"
 
   if [[ ! -d "/usr/lib/modules/${running}" ]]; then
-    reboot_add_reason "Kernel was updated (running ${running}, its modules are gone)"
+    reboot_request "Kernel was updated (running ${running}, its modules are gone)"
   fi
 }
 
