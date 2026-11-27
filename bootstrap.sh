@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-sudo dnf install -y git
+sudo pacman -S --no-confirm git
 
 REPO_SSH="git@github.com:sunbox-sudo/FlaxENV.git"
 REPO_HTTPS="https://github.com/sunbox-sudo/FlaxENV.git"
